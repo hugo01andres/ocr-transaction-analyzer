@@ -4,7 +4,7 @@ chat_agent.py (LangChain version)
 Conversational agent using LangChain + Claude via Bedrock.
 - Keeps track of conversation with memory.
 - Responds to casual chat.
-- Runs the OCR pipeline when the user asks for a comprobante.
+- Runs the OCR pipeline when the user asks for a transaction receipt.
 """
 
 from langchain_aws import ChatBedrock
@@ -43,19 +43,19 @@ conversation = RunnableWithMessageHistory(
 def handle_user_input(user_input: str) -> str:
     """
     Handles user input: 
-    - If 'comprobante' is mentioned, run pipeline.
+    - If 'transaction receipt' is mentioned, run pipeline.
     - Otherwise, let Claude (via LangChain) reply.
     """
-    if "comprobante" in user_input.lower():
+    if "transaction" in user_input.lower() and any(word in user_input.lower() for word in ["receipt", "rec", "trans"]):
         for token in user_input.split():
             if token.isdigit():
-                file_name = f"comprobante_{token}.jpg"
+                file_name = f"transaction_receipt_{token}.jpg"
                 try:
                     result = pipeline.run_pipeline(f"samples/{file_name}", backend="mock")
                     return f"Here is the analysis for {file_name}:\n{result}"
                 except FileNotFoundError:
                     return f"❌ File {file_name} not found in samples/"
-        return "I couldn’t detect the comprobante number."
+        return "I couldn’t detect the transaction receipt number."
     else:
         return conversation.invoke({"input": user_input}, config={"configurable": {"session_id": "my-session"}}).content
 

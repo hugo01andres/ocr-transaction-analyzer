@@ -1,13 +1,13 @@
 """
-Scorer del pipeline OCR Transaction Analyzer
---------------------------------------------
-Se encarga de validar y asignar un "score" o decisión
-al comprobante extraído y parseado.
+Scorer for OCR Transaction Analyzer
+-----------------------------------
+Responsible for validating and assigning a "score" or decision
+to the extracted and parsed receipt.
 
-Reglas básicas (ejemplo):
-- Monto > 10,000 → requiere revisión manual.
-- Fecha faltante o inválida → rechazo automático.
-- Si todos los campos clave existen → pre-aprobado.
+Basic rules (example):
+- Amount > 10,000 → requires manual review.
+- Missing or invalid date → automatic rejection.
+- If all key fields exist → pre-approved.
 """
 
 from datetime import datetime
@@ -15,7 +15,7 @@ from typing import Dict
 
 
 def validate_date(date_str: str) -> bool:
-    """Valida formato de fecha (YYYY-MM-DD)."""
+    """Validates date format (YYYY-MM-DD)."""
     try:
         datetime.strptime(date_str, "%Y-%m-%d")
         return True
@@ -23,54 +23,54 @@ def validate_date(date_str: str) -> bool:
         return False
 
 
-def score_comprobante(data: Dict) -> Dict:
+def score_receipt(data: Dict) -> Dict:
     """
-    Aplica reglas de negocio simples para decidir si el comprobante
-    se puede pre-aprobar automáticamente.
+    Applies simple business rules to decide if the receipt
+    can be auto pre-approved.
 
     Args:
-        data (dict): comprobante parseado con campos:
-                     fecha, emisor, receptor, monto, folio
+        data (dict): parsed receipt with fields:
+                     date, sender, receiver, amount, reference
 
     Returns:
-        dict: resultado con status y detalles
+        dict: result with status and details
     """
     result = {"status": None, "reason": None, "data": data}
 
-    # Validar campos obligatorios
-    required = ["fecha", "emisor", "receptor", "monto", "folio"]
+    # Validate required fields
+    required = ["date", "sender", "receiver", "amount", "reference"]
     missing = [f for f in required if f not in data or not data[f]]
     if missing:
         result["status"] = "rejected"
-        result["reason"] = f"Campos faltantes: {', '.join(missing)}"
+        result["reason"] = f"Missing fields: {', '.join(missing)}"
         return result
 
-    # Validar fecha
-    if not validate_date(data["fecha"]):
+    # Validate date
+    if not validate_date(data["date"]):
         result["status"] = "rejected"
-        result["reason"] = "Fecha inválida"
+        result["reason"] = "Invalid date"
         return result
 
-    # Regla de monto alto
-    if data["monto"] > 10000:
+    # High amount rule
+    if data["amount"] > 10000:
         result["status"] = "manual_review"
-        result["reason"] = "Monto alto requiere revisión manual"
+        result["reason"] = "High amount requires manual review"
         return result
 
-    # Si todo bien → pre-aprobado
+    # If everything is ok → pre-approved
     result["status"] = "pre_approved"
-    result["reason"] = "Cumple con validaciones automáticas"
+    result["reason"] = "Meets automatic validation rules"
     return result
 
 
 if __name__ == "__main__":
-    # Prueba rápida con un mock
+    # Quick test with a mock receipt
     sample = {
-        "fecha": "2025-09-20",
-        "emisor": "Hugo Martinez",
-        "receptor": "Andrea Martinez",
-        "monto": 1250.00,
-        "folio": "123456789",
+        "date": "2025-09-20",
+        "sender": "Hugo Martinez",
+        "receiver": "Andrea Martinez",
+        "amount": 1250.00,
+        "reference": "123456789",
     }
-    scored = score_comprobante(sample)
+    scored = score_receipt(sample)
     print(scored)
