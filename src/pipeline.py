@@ -7,10 +7,10 @@ Flujo:
 3. Scorer valida los datos y da pre-aprobación.
 """
 
-from utils import ocr_mock
+from .utils import ocr_mock
 # from utils.ocr_extractor import upload_to_s3, extract_text_from_s3  # TODO: habilitar cuando Textract esté listo
-from parser import parse_comprobante_text
-from scorer import score_comprobante
+from .parser import parse_comprobante_text
+from .scorer import score_comprobante
 
 
 def run_pipeline(file_path: str, backend: str = "mock"):

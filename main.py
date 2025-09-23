@@ -8,7 +8,7 @@ el backend definido (mock o aws).
 """
 
 import argparse
-from pipeline import run_pipeline
+from .src import pipeline
 
 def main():
     parser = argparse.ArgumentParser(description="OCR Transaction Analyzer POC")
@@ -22,7 +22,7 @@ def main():
     )
     args = parser.parse_args()
 
-    result = run_pipeline(args.file, backend=args.backend)
+    result = pipeline.run_pipeline(args.file, backend=args.backend)
     print("=== Resultado del pipeline ===")
     print(result)
 

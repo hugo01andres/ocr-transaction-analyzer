@@ -1,139 +1,124 @@
 # OCR Transaction Analyzer
 
-🚀 Proof of Concept (POC) for automating **financial transaction compliance** using **OCR + AI**.  
-The system extracts key data from money transfer receipts, applies risk scoring rules, and generates automatic explanations with a Large Language Model (LLM).  
-This reduces the need for manual compliance agents to review every receipt image in detail.
+Proof of Concept (POC) to process transaction receipts using **OCR** and business rules.  
+The system extracts key data (date, sender, recipient, amount, folio) from a receipt and determines whether the transaction should be **pre-approved, rejected, or sent for manual review**.
 
 ---
 
-## 📖 Problem Statement
+## 🚀 Features
 
-In fintech and remittance companies, compliance teams must review transaction receipts to detect fraud and comply with AML regulations.  
-Today, this process is often **manual, slow, and expensive**:
-- Analysts open receipt images one by one.  
-- They confirm **amount, sender, receiver, and date**.  
-- They decide whether the case is low or high risk.  
-
-This approach does not scale when processing thousands or millions of transactions per day.
-
----
-
-## 🎯 POC Objective
-
-The goal of this POC is to **simulate an automated pre-approval system** where:
-- OCR extracts transaction data from receipt images.  
-- A scoring module classifies the risk: `AUTO_APPROVED`, `REQUIRES_REVIEW`, or `REJECTED`.  
-- An AI model generates a short compliance explanation.  
-- Human reviewers only see structured data (amount, sender, receiver, date), not the full image — unless needed for audit.  
+- Generate fake transaction receipts for testing.
+- OCR with two backends:
+  - **Mock OCR** (hardcoded text for quick tests).
+  - **AWS Textract** (pending account activation).
+- Regex-based parser to convert plain text into structured JSON.
+- Business rules scorer:
+  - Rejects if data is missing or the date is invalid.
+  - Flags manual review if amount > $10,000.
+  - Pre-approves if all rules are satisfied.
+- Orchestrated pipeline with a single entry point (`main.py`).
+- Modular structure with `src/` and `tests/`.
 
 ---
 
-## 🛠️ Tech Stack
+## 📂 Project Structure
 
-- **Python 3.10+**  
-- **pytesseract + Pillow** → OCR engine  
-- **LangChain + OpenAI GPT** → AI explanations  
-- **Regex + simple rules** → risk scoring  
-- **JSON output / SQLite (optional)** → persistence  
-
----
-
-## ⚙️ How It Works (Flow)
-
-
-Example output:
-
-```json
-{
-  "transaction_id": "tx_20250921_001",
-  "amount": 750.0,
-  "currency": "USD",
-  "date": "2025-09-21",
-  "sender_name": "Juan Pérez",
-  "receiver_name": "Maria Lopez",
-  "score_label": "REQUIRES_REVIEW",
-  "score_reason": "amount_above_threshold",
-  "explanation": "The transaction exceeds the $500 threshold and requires additional review.",
-  "ocr_text_snippet": "Monto: $750.00 USD\nFecha: 21/09/2025..."
-}
-
----
-
-## 📂 Repository Structure
 ocr-transaction-analyzer/
-│── pipeline.py             # Main pipeline (OCR → parser → scoring → AI)
-│── generar_comprobantes.py # Script to generate fake receipts for testing
-│── requirements.txt        # Python dependencies
-│── samples/                # Example receipt images
-│── docs/
-│   └── POV_Scope.md        # POC Scope & Value document (AS-IS vs TO-BE)
+│
+├── main.py # Entry point
+├── samples/ # Test receipts
+│ └── comprobante_120.jpg
+│
+├── src/
+│ ├── config.py # Loads credentials from .env
+│ ├── parser.py # Converts plain text to JSON
+│ ├── pipeline.py # Orchestrates the entire flow
+│ ├── scorer.py # Applies business validation rules
+│ └── utils/
+│ ├── generar_comprobantes.py # Fake receipt generator
+│ ├── ocr_mock.py # Simulated OCR (hardcoded text)
+│ └── ocr_extractor.py # AWS Textract integration (TODO)
+│
+├── tests/
+│ └── test_connection.py # AWS S3/Textract connection test
+│
+└── README.md
+
 
 ---
 
-## 🚀 Getting Started
+## 📊 System Flow
+
+```mermaid
+flowchart TD
+
+    A[📄 Receipt (image/PDF)] --> B[🔍 OCR]
+    B -->|Mock (simulated)| B1[Extracted text (mock)]
+    B -->|AWS Textract (TODO)| B2[Extracted text (real)]
+
+    B1 --> C[📝 Parser]
+    B2 --> C[📝 Parser]
+
+    C -->|Regex + rules| D{Structured JSON}
+    D --> E[⚖️ Scorer]
+
+    E -->|Amount > 10,000| F[❗ Manual Review]
+    E -->|Invalid date or missing fields| G[❌ Rejected]
+    E -->|All rules passed| H[✅ Pre-approved]
+
+    H --> I[📊 Final Result]
+    G --> I
+    F --> I
+```
+---
+
+## 🛠️ Getting Started
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-user/ocr-transaction-analyzer.git
+git clone https://github.com/your-username/ocr-transaction-analyzer.git
 cd ocr-transaction-analyzer
 ```
 
-### 2. Create a virtual environment (optional but recommended)
+### 2. Create virtualenv
 ```bash
-python -m venv venv
-source venv/bin/activate   # Linux/Mac
-venv\Scripts\activate      # Windows
+python -m venv .venv
+source .venv/bin/activate   # Linux/Mac
+.venv\Scripts\activate      # Windows
 ```
-
-### 3. Install dependencies
+### 2. Install requirements
 ```bash
 pip install -r requirements.txt
 ```
 
-Dependencies include:
-- **easyocr** → OCR engine (pure Python, no extra installs)
-- **langchain + openai** → AI explanations
-- **pillow** → image handling
-
-### 4. Generate sample receipts
 ```bash
-python generar_comprobantes.py
+AWS_ACCESS_KEY_ID=your-key
+AWS_SECRET_ACCESS_KEY=your-secret
+AWS_REGION=us-east-1
+```
+```bash
+python main.py --file samples/comprobante_120.jpg --backend mock
+```
+```bash
+python main.py --file samples/comprobante_120.jpg --backend aws
 ```
 
-This will create images like `samples/comprobante_750.jpg`.
+## 🗺️ Roadmap
 
-### 5. Run the pipeline
-```bash
-python pipeline.py samples/comprobante_750.jpg
-```
-
-Expected output: structured JSON with amount, risk score, and AI explanation.
-
----
-
-## ✅ Acceptance Criteria
-
-- OCR with **EasyOCR** extracts **amount, sender, receiver, date** from receipt images.  
-- Apply simple risk rules:  
-  - ≤ 500 USD → `AUTO_APPROVED`  
-  - 500–5000 USD → `REQUIRES_REVIEW`  
-  - > 5000 USD → `REJECTED`  
-- Generate **short AI explanation** (1–2 lines) with LangChain + GPT.  
-- Output in **structured JSON** format for compliance teams.  
-- Reviewer sees structured fields only (no need to open full image).  
-- Processing time per receipt < 5 seconds in local environment.
-
----
-
-## 📈 Roadmap (Future Work)
-
-- 🔄 Replace EasyOCR with **AWS Textract** for production-grade OCR.  
-- ☁️ Deploy pipeline on **AWS Lambda** (serverless) or **ECS** for scalability.  
-- 🤖 Add ML-based **risk scoring** (e.g., LightGBM on historical transactions).  
-- 🖥️ Build a small **web dashboard** for compliance reviewers (queue view).  
-- 🔐 Implement **audit logging**, **access control**, and **data encryption**.  
-- 📊 Add monitoring & metrics (accuracy, false positives, processing time).  
-- 🌍 Extend language support for receipts in Spanish, English, and Portuguese.
+1. **Mock POC** → Implement the full flow using a simulated OCR (mock).  
+2. **AWS Textract Integration** → Replace the mock with real OCR extraction.  
+3. **Persistence Layer** → Store structured results into a database.  
+4. **REST API** → Expose the service using Flask or FastAPI.  
+5. **Frontend Demo** → Build a simple dashboard for uploading and validating receipts.  
 
 
+## 📚 Tech Stack
 
+- **Languages:** Python  
+- **Backend Frameworks:** Flask (future), FastAPI (future)  
+- **Frontend Frameworks:** Angular (for potential dashboard)  
+- **Orchestration / Automation:** argparse (CLI), n8n (future integration)  
+- **OCR:** Mock (current), AWS Textract (future)  
+- **Infrastructure:** AWS S3, IAM, (future) Bedrock/SageMaker  
+- **Libraries:** LangChain, LangGraph, Regex, boto3  
+- **Testing:** pytest
