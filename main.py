@@ -8,23 +8,35 @@ el backend definido (mock o aws).
 """
 
 import argparse
-from .src import pipeline
+from src import chat_agent, pipeline
+from src.utils import ocr_mock
+
 
 def main():
-    parser = argparse.ArgumentParser(description="OCR Transaction Analyzer POC")
-    parser.add_argument(
-        "--file", type=str, default="samples/comprobante_120.jpg",
-        help="Ruta al comprobante a procesar"
-    )
-    parser.add_argument(
-        "--backend", type=str, choices=["mock", "aws"], default="mock",
-        help="Backend OCR: mock (simulado) o aws (Textract)"
-    )
-    args = parser.parse_args()
+    print("💬 OCR Transaction Analyzer (Conversational Mode)")
+    print("Type 'exit' to quit.\n")
 
-    result = pipeline.run_pipeline(args.file, backend=args.backend)
-    print("=== Resultado del pipeline ===")
-    print(result)
+    while True:
+        user_input = input("👉 Which comprobante do you want to analyze? ")
+
+        if user_input.lower() in ["exit", "quit", "salir"]:
+            print("👋 Exiting...")
+            break
+
+        # 1. Ask Claude which file the user meant
+        comprobante = chat_agent.get_requested_comprobante(user_input)
+
+        print(f"🤖 Claude selected: {comprobante}")
+
+        # 2. Run pipeline
+        try:
+            result = pipeline.run_pipeline(f"samples/{comprobante}", backend="mock")
+            print("=== Pipeline result ===")
+            print(result)
+        except FileNotFoundError:
+            print(f"❌ File not found: samples/{comprobante}")
+        except Exception as e:
+            print(f"⚠️ Error running pipeline: {e}")
 
 if __name__ == "__main__":
     main()

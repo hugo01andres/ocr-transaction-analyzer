@@ -1,4 +1,4 @@
-from utils import ocr_mock  # temporal
+from .utils import ocr_mock  # temporal
 # from utils import ocr_extractor  # real cuando actives AWS
 
 def read_text(file_path: str, backend: str = "mock") -> str:

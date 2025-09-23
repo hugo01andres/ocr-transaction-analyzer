@@ -1,5 +1,5 @@
 import boto3
-import config
+from . import config
 import os
 
 s3 = boto3.client(
